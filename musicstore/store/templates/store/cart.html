@@ -1,0 +1,52 @@
+{% extends 'store/base.html' %}
+
+{% block content %}
+<h2 style="color: white;">Your Cart</h2>
+
+{% if cart %}
+    <table style="width: 100%; border-collapse: collapse; margin-top: 20px; color: white;">
+        <thead>
+            <tr>
+                <th style="padding: 10px; text-align: left;">Product</th>
+                <th style="padding: 10px; text-align: left;">Price</th>
+                <th style="padding: 10px; text-align: left;">Quantity</th>
+                <th style="padding: 10px; text-align: left;">Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for key, item in cart.items %}
+            <tr style="vertical-align: middle;">
+                <td style="padding: 10px; display: flex; align-items: center;">
+                    <img src="{{ item.image }}" alt="{{ item.name }}" style="width: 100px; height: auto; margin-right: 15px;">
+                    <span>{{ item.name }}</span>
+                </td>
+                <td style="padding: 10px;">${{ item.price }}</td>
+                <td style="padding: 10px;">
+                    <form action="{% url 'update_cart_quantity' key %}" method="post" style="display: flex; align-items: center; gap: 10px;">
+                        {% csrf_token %}
+                        <button type="submit" name="action" value="decrease"
+                            style="background: none; border: none; font-size: 20px; cursor: pointer; color: white;">-</button>
+                        <span>{{ item.quantity }}</span>
+                        <button type="submit" name="action" value="increase"
+                            style="background: none; border: none; font-size: 20px; cursor: pointer; color: white;">+</button>
+                    </form>
+                </td>
+                <td style="padding: 10px;">
+                    <a href="{% url 'remove_from_cart' key %}" style="color: red; text-decoration: none;">Remove</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h3 style="text-align: right; margin-right: 10%; color: white;">Total: ${{ total }}</h3>
+
+    <div style="text-align: center; margin-top: 20px;">
+        <a href="{% url 'home' %}" style="text-decoration: none; color: #ccc; margin-right: 20px;">Continue Shopping</a>
+        <a href="{% url 'checkout' %}" style="text-decoration: none; background: #fff; color: #000; padding: 10px 20px; border-radius: 8px;">Proceed to Checkout</a>
+    </div>
+{% else %}
+    <p style="color: white;">Your cart is empty.</p>
+{% endif %}
+
+{% endblock %}

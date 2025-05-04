@@ -1,0 +1,15 @@
+{% extends 'store/base.html' %}
+
+{% block content %}
+<h1>Payment Successful 🎉</h1>
+<p>Your invoice has been uploaded to IPFS.</p>
+
+{% if ipfs_hash %}
+    <p><strong>IPFS Hash:</strong> {{ ipfs_hash }}</p>
+    <p>View your invoice on IPFS: 
+        <a href="http://127.0.0.1:8080/ipfs/{{ ipfs_hash }}" target="_blank">View Invoice</a>
+    </p>
+{% endif %}
+
+<a href="{% url 'home' %}">Return to Home</a>
+{% endblock %}

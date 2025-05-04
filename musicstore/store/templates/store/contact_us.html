@@ -1,0 +1,24 @@
+{% extends 'store/base.html' %}
+
+{% block content %}
+<div style="max-width: 800px; margin: auto;">
+    <h2>Contact Us</h2>
+    <p>Need help? We're just a note away!</p>
+
+    <div style="margin-top: 20px;">
+        <form action="#" method="post">
+            {% csrf_token %}
+            <input type="text" name="name" placeholder="Your Name" required style="width: 100%; padding: 10px; margin-bottom: 10px;">
+            <input type="email" name="email" placeholder="Your Email" required style="width: 100%; padding: 10px; margin-bottom: 10px;">
+            <textarea name="message" rows="4" placeholder="Your Message" required style="width: 100%; padding: 10px;"></textarea>
+            <button type="submit" style="margin-top: 10px; padding: 10px 20px; background: black; color: white;">Send Message</button>
+        </form>
+    </div>
+
+    <div style="margin-top: 40px;">
+        <p><strong>Email:</strong> support@groovegarage.com</p>
+        <p><strong>Phone:</strong> +91-9876543210</p>
+        <p><strong>Address:</strong> 123 Harmony Street, Chennai, India</p>
+    </div>
+</div>
+{% endblock %}

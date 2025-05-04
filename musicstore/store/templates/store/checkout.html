@@ -1,0 +1,154 @@
+{% extends 'store/base.html' %}
+
+{% load static %}
+
+{% block content %}
+<div style="max-width: 800px; margin: auto; padding: 30px; background-color: #1e1e1e; border-radius: 15px; box-shadow: 0 0 20px rgba(255, 255, 255, 0.05); color: #f0f0f0;">
+
+    <h2 style="text-align: center; margin-bottom: 30px; font-size: 32px;">Checkout</h2>
+
+    <!-- Connect to MetaMask -->
+    <div style="text-align: center; margin-bottom: 20px;">
+        <button onclick="connectMetaMask()" style="padding: 10px 20px; background-color: #f6851b; border: none; color: white; font-weight: bold; border-radius: 8px; cursor: pointer;">
+            Connect to MetaMask
+        </button>
+    </div>
+
+    {% if cart %}
+    <h3 style="margin-top: 30px; font-size: 24px;">Cart Summary</h3>
+
+    <table style="width: 100%; border-collapse: collapse; margin-top: 20px; background-color: #2a2a2a; border-radius: 10px;">
+        <thead>
+            <tr style="background-color: #333;">
+                <th style="padding: 12px; text-align: left;">Product</th>
+                <th style="padding: 12px; text-align: left;">Price</th>
+                <th style="padding: 12px; text-align: left;">Quantity</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for key, item in cart.items %}
+            <tr style="border-bottom: 1px solid #444;">
+                <td style="padding: 12px;">{{ item.name }}</td>
+                <td style="padding: 12px;">${{ item.price }}</td>
+                <td style="padding: 12px;">{{ item.quantity }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h3 style="margin-top: 20px;">Total: ${{ total }}</h3>
+
+    <div style="text-align: center; margin-top: 30px;">
+        <button id="payWithMetaMask"
+            onclick="initiateEscrow('{{ seller_address }}', '{{ escrow_contract_address }}', '{{ total }}')"
+            style="padding: 12px 25px; background-color: #00c292; color: white; font-weight: bold; border: none; border-radius: 10px; font-size: 16px; cursor: pointer;">
+            Pay with MetaMask
+        </button>
+    </div>
+
+    {% else %}
+    <p style="text-align: center;">Your cart is empty.</p>
+    {% endif %}
+
+    <div style="text-align: center; margin-top: 30px;">
+        <a href="{% url 'home' %}" style="color: #ddd; text-decoration: underline;">← Back to Home</a>
+    </div>
+
+    {% csrf_token %}
+</div>
+
+<!-- Load Web3.js -->
+<script src="{% static 'js/web3-v1.min.js' %}"></script>
+
+<script>
+    async function connectMetaMask() {
+        if (typeof window.ethereum !== 'undefined') {
+            try {
+                await window.ethereum.request({ method: 'eth_requestAccounts' });
+                const accounts = await ethereum.request({ method: 'eth_accounts' });
+                alert('Connected with MetaMask: ' + accounts[0]);
+            } catch (error) {
+                console.error('Error connecting to MetaMask:', error);
+                alert('MetaMask connection failed: ' + error.message);
+            }
+        } else {
+            alert('MetaMask not detected. Please install MetaMask!');
+        }
+    }
+
+    async function initiateEscrow(sellerAddress, contractAddress, amount) {
+        console.log("Initiating Escrow Payment...");
+        console.log("Seller Address:", sellerAddress);
+        console.log("Contract Address:", contractAddress);
+        console.log("Amount in ETH:", amount);
+
+        if (typeof window.ethereum === 'undefined') {
+            alert('MetaMask not detected. Please install MetaMask!');
+            return;
+        }
+
+        try {
+            await window.ethereum.request({ method: 'eth_requestAccounts' });
+            const web3 = new Web3(window.ethereum);
+
+            const escrowAbi = [
+                {
+                    "inputs": [{ "internalType": "address", "name": "_seller", "type": "address" }],
+                    "stateMutability": "nonpayable",
+                    "type": "constructor"
+                },
+                {
+                    "inputs": [],
+                    "name": "deposit",
+                    "outputs": [],
+                    "stateMutability": "payable",
+                    "type": "function"
+                },
+                {
+                    "inputs": [],
+                    "name": "releaseFunds",
+                    "outputs": [],
+                    "stateMutability": "nonpayable",
+                    "type": "function"
+                }
+            ];
+
+            const escrowContract = new web3.eth.Contract(escrowAbi, contractAddress);
+            const accounts = await web3.eth.getAccounts();
+
+            const amountInWei = web3.utils.toWei(amount.toString(), 'ether');
+            const estimatedGas = await escrowContract.methods.deposit().estimateGas({
+                from: accounts[0],
+                value: amountInWei,
+            });
+
+            const gasPrice = await web3.eth.getGasPrice();
+            const increasedGasPrice = BigInt(gasPrice) * BigInt(2);
+
+            await escrowContract.methods.deposit().send({
+                from: accounts[0],
+                value: amountInWei,
+                gas: estimatedGas,
+                gasPrice: increasedGasPrice.toString(),
+            });
+
+            alert('Payment successful via Escrow!');
+
+            await fetch('/invoice/upload/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                },
+                body: JSON.stringify({ payment: true }),
+            });
+
+            window.location.href = "/payment-success/";
+
+        } catch (error) {
+            console.error('Error during payment:', error);
+            alert('Payment failed: ' + error.message);
+        }
+    }
+</script>
+{% endblock %}
